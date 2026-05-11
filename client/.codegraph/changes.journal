@@ -1,0 +1,11 @@
+# codegraph-journal v1 1778514368606
+src/components/LiveResults.tsx
+src/components/VotingInterface.tsx
+src/hooks/useSocket.ts
+src/pages/AudienceView.tsx
+src/pages/JoinRoom.tsx
+src/pages/PresenterDashboard.tsx
+src/types.ts
+src/App.tsx
+src/App.tsx
+src/App.tsx
