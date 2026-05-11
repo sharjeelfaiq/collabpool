@@ -1,73 +1,94 @@
-# React + TypeScript + Vite
+# CollabPoll Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+CollabPoll's frontend is a React + Vite application for running live collaborative polls. It supports a presenter view for creating and managing polls and an audience view for joining a room, voting, and watching results update in real time.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React with TypeScript
+- Vite development server and build pipeline
+- Socket.IO client for real-time events
+- Tailwind CSS for styling
 
-## React Compiler
+## UI Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The app starts at the join screen:
 
-## Expanding the ESLint configuration
+- **Create room**: creates a backend room, stores the returned presenter token in app state, and enters the presenter dashboard.
+- **Join room**: joins an existing room as either audience or presenter using the room code. Audience joins do not require credentials.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+After joining, the UI branches by role:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Presenter view**: create draft polls, start polls, close polls, view live results, and create follow-up polls from closed poll results.
+- **Audience view**: wait for the presenter, submit single-choice or weighted votes, and watch live result updates.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Main Files
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `src/App.tsx`: top-level state, room creation, room joining, socket events, and presenter/audience routing.
+- `src/pages/JoinRoom.tsx`: room code entry, display name entry, role selector, and create-room control.
+- `src/pages/PresenterDashboard.tsx`: poll creation form, start/close controls, live results, and chained-poll control.
+- `src/pages/AudienceView.tsx`: audience room shell, voting state, and results display.
+- `src/components/VotingInterface.tsx`: single-choice and weighted voting form.
+- `src/components/LiveResults.tsx`: live result bars and voter count.
+- `src/hooks/useSocket.ts`: shared Socket.IO client, ack handling, and event subscription helpers.
+- `src/types.ts`: shared frontend payload and model types.
+
+## Socket Integration
+
+The frontend connects to Socket.IO with:
+
+```ts
+import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000'
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Command events are emitted through `useSocket().emit`, which expects the backend acknowledgement envelope and rejects failed requests as JavaScript errors.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+The app listens for:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- `room:joined`
+- `poll:started`
+- `results:update`
+- `poll:closed`
+
+The app emits:
+
+- `room:join`
+- `poll:create`
+- `poll:start`
+- `poll:close`
+- `vote:submit`
+
+Presenter-only emits include the `presenterToken` returned by `POST /room/create`.
+
+## Backend Dependency
+
+The frontend expects the backend to be running and reachable for:
+
+- `POST /room/create` through `VITE_API_URL` or `http://localhost:5000`
+- Socket.IO through `VITE_SOCKET_URL` or `http://localhost:5000`
+
+Create a room from the frontend first, then use the displayed room code to join from another tab or browser as an audience participant.
+
+## Environment Variables
+
+Optional `client/.env` values:
+
+```bash
+VITE_API_URL=http://localhost:5000
+VITE_SOCKET_URL=http://localhost:5000
+```
+
+## Run Locally
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Vite will print the local browser URL, typically `http://localhost:5173`.
+
+For a production build:
+
+```bash
+npm run build
 ```

@@ -23,6 +23,12 @@ type VoteAck = {
   results: ResultsPayload;
 };
 
+type CreateRoomResponse = {
+  roomCode: string;
+  presenterToken: string;
+  role: 'presenter';
+};
+
 function createVoterId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
@@ -36,6 +42,7 @@ function App() {
   const [voterId] = useState(createVoterId);
   const [role, setRole] = useState<Role>('audience');
   const [displayName, setDisplayName] = useState('');
+  const [presenterToken, setPresenterToken] = useState<string | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [currentPoll, setCurrentPoll] = useState<Poll | null>(null);
   const [results, setResults] = useState<ResultsPayload | null>(null);
@@ -80,7 +87,7 @@ function App() {
     };
   }, [on]);
 
-  const joinRoom = async (input: { code: string; displayName: string; role: Role }) => {
+  const joinRoom = async (input: { code: string; displayName: string; role: Role; presenterToken?: string | null }) => {
     const joined = await emit<RoomJoinedPayload>('room:join', {
       code: input.code.trim(),
       voterId,
@@ -89,14 +96,40 @@ function App() {
 
     setRole(input.role);
     setDisplayName(input.displayName.trim());
+    setPresenterToken(input.role === 'presenter' ? input.presenterToken || null : null);
     setRoom(joined.room);
     setCurrentPoll(joined.activePoll);
     setResults(null);
   };
 
+  const createRoom = async (displayNameInput: string) => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/room/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Could not create room.');
+    }
+
+    const created = (await response.json()) as CreateRoomResponse;
+    await joinRoom({
+      code: created.roomCode,
+      displayName: displayNameInput,
+      role: created.role,
+      presenterToken: created.presenterToken,
+    });
+  };
+
   const createPoll = async (input: CreatePollInput) => {
     if (!room) {
       throw new Error('Join a room before creating a poll.');
+    }
+
+    if (!presenterToken) {
+      throw new Error('Presenter token is missing for this room.');
     }
 
     const created = await emit<CreatePollAck>('poll:create', {
@@ -105,6 +138,9 @@ function App() {
       options: input.options,
       votingMode: input.votingMode,
       totalPoints: input.totalPoints,
+      previousPollId: input.previousPollId,
+      topN: input.topN,
+      presenterToken,
     });
 
     setCurrentPoll(created.poll);
@@ -116,9 +152,14 @@ function App() {
       throw new Error('Join a room before starting a poll.');
     }
 
+    if (!presenterToken) {
+      throw new Error('Presenter token is missing for this room.');
+    }
+
     const started = await emit<PollPayload>('poll:start', {
       roomId: room.id,
       pollId,
+      presenterToken,
     });
 
     setCurrentPoll(started.poll);
@@ -130,9 +171,14 @@ function App() {
       throw new Error('Join a room before closing a poll.');
     }
 
+    if (!presenterToken) {
+      throw new Error('Presenter token is missing for this room.');
+    }
+
     const closed = await emit<PollClosedPayload>('poll:close', {
       roomId: room.id,
       pollId,
+      presenterToken,
     });
 
     setCurrentPoll(closed.poll);
@@ -162,7 +208,7 @@ function App() {
   };
 
   if (!room) {
-    return <JoinRoom onJoin={joinRoom} />;
+    return <JoinRoom onCreateRoom={createRoom} onJoin={joinRoom} />;
   }
 
   if (role === 'presenter') {

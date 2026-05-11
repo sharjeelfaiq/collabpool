@@ -23,6 +23,7 @@ export function PresenterDashboard({
   const [options, setOptions] = useState(['', '']);
   const [votingMode, setVotingMode] = useState<VotingMode>('single');
   const [totalPoints, setTotalPoints] = useState(10);
+  const [topN, setTopN] = useState(3);
   const [error, setError] = useState('');
   const [isBusy, setIsBusy] = useState(false);
 
@@ -66,6 +67,19 @@ export function PresenterDashboard({
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const handleCreateChainedPoll = async () => {
+    if (!poll) {
+      return;
+    }
+
+    await runPollAction(async () => {
+      await onCreatePoll({
+        previousPollId: poll.id,
+        topN,
+      });
+    });
   };
 
   const runPollAction = async (action: () => Promise<void>) => {
@@ -209,6 +223,36 @@ export function PresenterDashboard({
               <p className="mt-3 text-sm text-slate-500">No poll has been created or started yet.</p>
             )}
           </section>
+
+          {poll && poll.status === 'closed' ? (
+            <section className="rounded-lg border border-slate-200 bg-white p-5">
+              <h2 className="text-lg font-semibold text-slate-950">Follow-up poll</h2>
+              <div className="mt-3 flex flex-wrap items-end gap-3">
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Top options</span>
+                  <select
+                    value={topN}
+                    onChange={(event) => setTopN(Number.parseInt(event.target.value, 10))}
+                    className="mt-1 w-32 rounded-md border border-slate-300 px-3 py-2 text-slate-950"
+                  >
+                    {[2, 3, 4, 5, 6].map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={handleCreateChainedPoll}
+                  className="rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Create follow-up
+                </button>
+              </div>
+            </section>
+          ) : null}
 
           <LiveResults results={results} />
         </aside>

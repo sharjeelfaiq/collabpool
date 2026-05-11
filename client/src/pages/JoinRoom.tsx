@@ -2,15 +2,17 @@ import { useState, type FormEvent } from 'react';
 import type { Role } from '../types';
 
 type JoinRoomProps = {
+  onCreateRoom: (displayName: string) => Promise<void>;
   onJoin: (input: { code: string; displayName: string; role: Role }) => Promise<void>;
 };
 
-export function JoinRoom({ onJoin }: JoinRoomProps) {
+export function JoinRoom({ onCreateRoom, onJoin }: JoinRoomProps) {
   const [code, setCode] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [role, setRole] = useState<Role>('audience');
   const [error, setError] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -23,6 +25,24 @@ export function JoinRoom({ onJoin }: JoinRoomProps) {
       setError(joinError instanceof Error ? joinError.message : 'Could not join room.');
     } finally {
       setIsJoining(false);
+    }
+  };
+
+  const handleCreateRoom = async () => {
+    setError('');
+
+    if (!displayName.trim()) {
+      setError('Add a display name before creating a room.');
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      await onCreateRoom(displayName.trim());
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : 'Could not create room.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -80,10 +100,18 @@ export function JoinRoom({ onJoin }: JoinRoomProps) {
 
         <button
           type="submit"
-          disabled={isJoining}
+          disabled={isJoining || isCreating}
           className="mt-6 w-full rounded-md bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           {isJoining ? 'Joining...' : 'Join room'}
+        </button>
+        <button
+          type="button"
+          disabled={isJoining || isCreating}
+          onClick={handleCreateRoom}
+          className="mt-3 w-full rounded-md border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {isCreating ? 'Creating...' : 'Create room'}
         </button>
       </form>
     </main>

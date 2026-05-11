@@ -22,8 +22,13 @@ const roomSchema = new Schema(
     },
     presenterId: {
       type: String,
+      trim: true,
+    },
+    presenterToken: {
+      type: String,
       required: true,
       trim: true,
+      select: false,
     },
     activePollId: {
       type: Schema.Types.ObjectId,

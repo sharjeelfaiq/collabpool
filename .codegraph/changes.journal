@@ -1,4 +1,4 @@
-# codegraph-journal v1 1778514665706
+# codegraph-journal v1 1778515373909
 DELETED tests/helpers/env.js
 DELETED tests/integration/auth.routes.test.js
 DELETED tests/integration/user.controller.test.js
@@ -83,3 +83,12 @@ server/app.js
 server/config/cors.js
 server/server.js
 server/sockets/index.js
+client/src/App.tsx
+client/src/pages/JoinRoom.tsx
+client/src/pages/PresenterDashboard.tsx
+client/src/types.ts
+server/app.js
+server/models/Room.js
+server/services/pollService.js
+server/sockets/index.js
+server/app.js

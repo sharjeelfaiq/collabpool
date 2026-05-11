@@ -58,10 +58,12 @@ export type PollClosedPayload = ResultsPayload & {
 };
 
 export type CreatePollInput = {
-  question: string;
-  options: string[];
-  votingMode: VotingMode;
-  totalPoints: number;
+  question?: string;
+  options?: string[];
+  votingMode?: VotingMode;
+  totalPoints?: number;
+  previousPollId?: string;
+  topN?: number;
 };
 
 export type VoteInput = {

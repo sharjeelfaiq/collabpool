@@ -21,8 +21,8 @@ function requireString(value, fieldName) {
 }
 
 function normalizeOptions(options) {
-  if (!Array.isArray(options) || options.length < 2) {
-    throw new ServiceError('INVALID_INPUT', 'At least two options are required.');
+  if (!Array.isArray(options) || options.length < 2 || options.length > 6) {
+    throw new ServiceError('INVALID_INPUT', 'Polls require between two and six options.');
   }
 
   const normalized = options.map((option) => requireString(option, 'option')).map((text) => ({ text }));
@@ -59,7 +59,7 @@ function normalizeTotalPoints(votingMode, totalPoints) {
 }
 
 async function getRoom(roomId) {
-  const room = await Room.findById(toObjectId(roomId, 'roomId'));
+  const room = await Room.findById(toObjectId(roomId, 'roomId')).select('+presenterToken');
 
   if (!room) {
     throw new ServiceError('ROOM_NOT_FOUND', 'Room was not found.');
@@ -68,15 +68,15 @@ async function getRoom(roomId) {
   return room;
 }
 
-function assertPresenter(room, presenterId) {
-  if (presenterId && room.presenterId !== presenterId) {
-    throw new ServiceError('FORBIDDEN', 'presenterId does not match this room.');
+function assertPresenter(room, presenterToken) {
+  if (!presenterToken || room.presenterToken !== presenterToken) {
+    throw new ServiceError('FORBIDDEN', 'presenterToken does not match this room.');
   }
 }
 
 async function createPoll(payload) {
   const room = await getRoom(payload && payload.roomId);
-  assertPresenter(room, payload && payload.presenterId);
+  assertPresenter(room, payload && payload.presenterToken);
 
   const votingMode = normalizeVotingMode(payload && payload.votingMode);
   const poll = await Poll.create({
@@ -93,7 +93,7 @@ async function createPoll(payload) {
 
 async function startPoll(payload) {
   const room = await getRoom(payload && payload.roomId);
-  assertPresenter(room, payload && payload.presenterId);
+  assertPresenter(room, payload && payload.presenterToken);
 
   const pollId = toObjectId(payload && payload.pollId, 'pollId');
   const poll = await Poll.findById(pollId);
@@ -188,7 +188,7 @@ async function startPoll(payload) {
 
 async function closePoll(payload) {
   const room = await getRoom(payload && payload.roomId);
-  assertPresenter(room, payload && payload.presenterId);
+  assertPresenter(room, payload && payload.presenterToken);
 
   const pollId = toObjectId(payload && payload.pollId, 'pollId');
   const poll = await Poll.findById(pollId);
@@ -234,7 +234,7 @@ async function closePoll(payload) {
   return { poll: closedPoll, room: updatedRoom || room, transitioned: true };
 }
 
-async function createChainedPoll(previousPollId, topN = 3, presenterId) {
+async function createChainedPoll(previousPollId, topN = 3, presenterToken) {
   const previousPoll = await Poll.findById(toObjectId(previousPollId, 'previousPollId'));
 
   if (!previousPoll) {
@@ -246,7 +246,7 @@ async function createChainedPoll(previousPollId, topN = 3, presenterId) {
   }
 
   const room = await getRoom(previousPoll.roomId);
-  assertPresenter(room, presenterId);
+  assertPresenter(room, presenterToken);
 
   const limit = Number.isInteger(topN) ? topN : Number.parseInt(topN, 10);
   if (!Number.isInteger(limit) || limit <= 0) {

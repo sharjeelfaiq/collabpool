@@ -41,7 +41,7 @@ const SOCKET_EVENT_CONTRACT = Object.freeze({
     },
     [CLIENT_EVENTS.POLL_CREATE]: {
       roomId: 'string',
-      presenterId: 'string',
+      presenterToken: 'string',
       question: 'string',
       options: ['string'],
       votingMode: 'single | weighted',
@@ -52,12 +52,12 @@ const SOCKET_EVENT_CONTRACT = Object.freeze({
     [CLIENT_EVENTS.POLL_START]: {
       roomId: 'string',
       pollId: 'string',
-      presenterId: 'string',
+      presenterToken: 'string',
     },
     [CLIENT_EVENTS.POLL_CLOSE]: {
       roomId: 'string',
       pollId: 'string',
-      presenterId: 'string',
+      presenterToken: 'string',
     },
     [CLIENT_EVENTS.VOTE_SUBMIT]: {
       roomId: 'string',
@@ -217,7 +217,7 @@ function initializeSocket(server) {
       try {
         const poll =
           payload && payload.previousPollId
-            ? await createChainedPoll(payload.previousPollId, payload.topN, payload.presenterId)
+            ? await createChainedPoll(payload.previousPollId, payload.topN, payload.presenterToken)
             : await createPoll(payload);
 
         return ack(callback, ok({ poll: serializePoll(poll) }));
