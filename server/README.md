@@ -97,17 +97,16 @@ Default allowed origins also include `http://localhost:5173` and `http://localho
 ```bash
 cd server
 npm install
-cp .env.example .env
-npm run dev
-```
-
-For a non-watch process:
-
-```bash
 npm start
 ```
 
-MongoDB must be reachable at `MONGODB_URI` before the server starts.
+MongoDB must be reachable at `MONGODB_URI` before the server starts. For local development, create `server/.env` first:
+
+```bash
+MONGODB_URI=mongodb://127.0.0.1:27017/collabpoll
+```
+
+For a watch process, use `npm run dev`.
 
 ## Design Decisions
 

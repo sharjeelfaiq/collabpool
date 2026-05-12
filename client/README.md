@@ -82,7 +82,7 @@ VITE_SOCKET_URL=http://localhost:5000
 ```bash
 cd client
 npm install
-npm run dev
+npm start
 ```
 
 Vite will print the local browser URL, typically `http://localhost:5173`.
