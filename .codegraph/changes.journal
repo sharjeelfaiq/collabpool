@@ -1,0 +1,8 @@
+# codegraph-journal v1 1778570878545
+client/src/types.ts
+client/src/App.tsx
+client/src/pages/PresenterDashboard.tsx
+client/src/pages/AudienceView.tsx
+server/sockets/index.js
+server/sockets/index.js
+server/sockets/index.js

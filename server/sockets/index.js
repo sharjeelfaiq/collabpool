@@ -27,6 +27,7 @@ const CLIENT_EVENTS = Object.freeze({
 
 const SERVER_EVENTS = Object.freeze({
   ROOM_JOINED: 'room:joined',
+  ROOM_UPDATE: 'room:update',
   POLL_STARTED: 'poll:started',
   RESULTS_UPDATE: 'results:update',
   POLL_CLOSED: 'poll:closed',
@@ -73,8 +74,13 @@ const SOCKET_EVENT_CONTRACT = Object.freeze({
       room: 'Room',
       activePoll: 'Poll | null',
     },
+    [SERVER_EVENTS.ROOM_UPDATE]: {
+      room: 'Room',
+      activePoll: 'Poll | null | undefined',
+    },
     [SERVER_EVENTS.POLL_STARTED]: {
       poll: 'Poll',
+      room: 'Room | undefined',
     },
     [SERVER_EVENTS.RESULTS_UPDATE]: {
       pollId: 'string',
@@ -83,6 +89,7 @@ const SOCKET_EVENT_CONTRACT = Object.freeze({
     },
     [SERVER_EVENTS.POLL_CLOSED]: {
       poll: 'Poll',
+      room: 'Room | undefined',
       totalVoters: 'number',
       results: [{ optionId: 'string', text: 'string', voteCount: 'number' }],
     },
@@ -228,12 +235,14 @@ function initializeSocket(server) {
 
     socket.on(CLIENT_EVENTS.POLL_START, async (payload, callback) => {
       try {
-        const { poll, room, transitioned } = await startPoll(payload);
-        const data = { poll: serializePoll(poll) };
+        const { poll, room } = await startPoll(payload);
+        const serializedPoll = serializePoll(poll);
+        const serializedRoom = serializeRoom(room);
+        const data = { poll: serializedPoll, room: serializedRoom };
+        const roomUpdate = { room: serializedRoom, activePoll: serializedPoll };
 
-        if (transitioned) {
-          io.to(room.code).emit(SERVER_EVENTS.POLL_STARTED, data);
-        }
+        io.to(room.code).emit(SERVER_EVENTS.POLL_STARTED, data);
+        io.to(room.code).emit(SERVER_EVENTS.ROOM_UPDATE, roomUpdate);
 
         return ack(callback, ok(data));
       } catch (error) {
@@ -261,16 +270,19 @@ function initializeSocket(server) {
 
     socket.on(CLIENT_EVENTS.POLL_CLOSE, async (payload, callback) => {
       try {
-        const { poll, room, transitioned } = await closePoll(payload);
+        const { poll, room } = await closePoll(payload);
         const resultsPayload = await getPollResults(poll._id);
         const closedPayload = {
           ...resultsPayload,
           poll: serializePoll(poll),
+          room: serializeRoom(room),
         };
 
-        if (transitioned) {
-          io.to(room.code).emit(SERVER_EVENTS.POLL_CLOSED, closedPayload);
-        }
+        io.to(room.code).emit(SERVER_EVENTS.POLL_CLOSED, closedPayload);
+        io.to(room.code).emit(SERVER_EVENTS.ROOM_UPDATE, {
+          room: closedPayload.room,
+          activePoll: null,
+        });
 
         return ack(callback, ok(closedPayload));
       } catch (error) {

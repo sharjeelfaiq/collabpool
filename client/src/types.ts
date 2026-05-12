@@ -4,10 +4,12 @@ export type VotingMode = 'single' | 'weighted';
 
 export type PollStatus = 'draft' | 'active' | 'closed';
 
+export type RoomStatus = 'waiting' | 'active' | 'closed';
+
 export type Room = {
   id: string;
   code: string;
-  status: string;
+  status: RoomStatus;
   presenterId?: string | null;
   activePollId?: string | null;
   createdAt?: string | null;
@@ -51,10 +53,17 @@ export type RoomJoinedPayload = {
 
 export type PollPayload = {
   poll: Poll;
+  room?: Room;
 };
 
 export type PollClosedPayload = ResultsPayload & {
   poll: Poll;
+  room?: Room;
+};
+
+export type RoomUpdatePayload = {
+  room: Room;
+  activePoll?: Poll | null;
 };
 
 export type CreatePollInput = {

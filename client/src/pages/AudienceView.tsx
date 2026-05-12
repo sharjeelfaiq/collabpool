@@ -4,17 +4,22 @@ import type { Poll, ResultsPayload, Room, VoteInput } from '../types';
 
 type AudienceViewProps = {
   room: Room;
+  displayName: string;
   poll: Poll | null;
   results: ResultsPayload | null;
   onVote: (vote: VoteInput) => Promise<void>;
 };
 
-export function AudienceView({ room, poll, results, onVote }: AudienceViewProps) {
+export function AudienceView({ room, displayName, poll, results, onVote }: AudienceViewProps) {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 text-left">
-      <header className="mb-6">
-        <p className="text-sm font-medium uppercase tracking-wide text-slate-500">Audience</p>
-        <h1 className="text-3xl font-semibold text-slate-950">Room {room.code}</h1>
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-500">Audience</p>
+          <h1 className="text-3xl font-semibold text-slate-950">Room {room.code}</h1>
+          <p className="mt-1 text-sm font-medium text-slate-600">{displayName}</p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">{room.status}</span>
       </header>
 
       <div className="space-y-5">

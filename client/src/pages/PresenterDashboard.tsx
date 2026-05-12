@@ -4,6 +4,7 @@ import type { CreatePollInput, Poll, ResultsPayload, Room, VotingMode } from '..
 
 type PresenterDashboardProps = {
   room: Room;
+  displayName: string;
   poll: Poll | null;
   results: ResultsPayload | null;
   onCreatePoll: (input: CreatePollInput) => Promise<void>;
@@ -13,6 +14,7 @@ type PresenterDashboardProps = {
 
 export function PresenterDashboard({
   room,
+  displayName,
   poll,
   results,
   onCreatePoll,
@@ -101,6 +103,7 @@ export function PresenterDashboard({
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-slate-500">Presenter</p>
           <h1 className="text-3xl font-semibold text-slate-950">Room {room.code}</h1>
+          <p className="mt-1 text-sm font-medium text-slate-600">{displayName}</p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">{room.status}</span>
       </header>

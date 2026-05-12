@@ -12,6 +12,7 @@ import type {
   Role,
   Room,
   RoomJoinedPayload,
+  RoomUpdatePayload,
   VoteInput,
 } from './types';
 
@@ -29,6 +30,8 @@ type CreateRoomResponse = {
   role: 'presenter';
 };
 
+const DISPLAY_NAME_STORAGE_KEY = 'collabpoll.displayName';
+
 function createVoterId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID();
@@ -37,11 +40,27 @@ function createVoterId() {
   return `voter-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getStoredDisplayName() {
+  try {
+    return sessionStorage.getItem(DISPLAY_NAME_STORAGE_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+function storeDisplayName(name: string) {
+  try {
+    sessionStorage.setItem(DISPLAY_NAME_STORAGE_KEY, name);
+  } catch {
+    // Ignore storage failures; the in-memory display name still works.
+  }
+}
+
 function App() {
   const { emit, on } = useSocket();
   const [voterId] = useState(createVoterId);
   const [role, setRole] = useState<Role>('audience');
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(getStoredDisplayName);
   const [presenterToken, setPresenterToken] = useState<string | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [currentPoll, setCurrentPoll] = useState<Poll | null>(null);
@@ -60,8 +79,16 @@ function App() {
       setCurrentPoll((existingPoll) => payload.activePoll || existingPoll);
     });
 
-    const cleanupPollStarted = on<PollPayload>('poll:started', ({ poll }) => {
+    const cleanupRoomUpdate = on<RoomUpdatePayload>('room:update', (payload) => {
+      setRoom(payload.room);
+      setCurrentPoll((existingPoll) => payload.activePoll ?? existingPoll);
+    });
+
+    const cleanupPollStarted = on<PollPayload>('poll:started', ({ poll, room: updatedRoom }) => {
       setCurrentPoll(poll);
+      if (updatedRoom) {
+        setRoom(updatedRoom);
+      }
       setResults(null);
     });
 
@@ -71,6 +98,9 @@ function App() {
 
     const cleanupPollClosed = on<PollClosedPayload>('poll:closed', (payload) => {
       setCurrentPoll(payload.poll);
+      if (payload.room) {
+        setRoom(payload.room);
+      }
       setResults({
         pollId: payload.pollId,
         votingMode: payload.votingMode,
@@ -81,6 +111,7 @@ function App() {
 
     return () => {
       cleanupRoomJoined();
+      cleanupRoomUpdate();
       cleanupPollStarted();
       cleanupResultsUpdate();
       cleanupPollClosed();
@@ -88,14 +119,16 @@ function App() {
   }, [on]);
 
   const joinRoom = async (input: { code: string; displayName: string; role: Role; presenterToken?: string | null }) => {
+    const trimmedDisplayName = input.displayName.trim();
     const joined = await emit<RoomJoinedPayload>('room:join', {
       code: input.code.trim(),
       voterId,
-      displayName: input.displayName.trim(),
+      displayName: trimmedDisplayName,
     });
 
     setRole(input.role);
-    setDisplayName(input.displayName.trim());
+    setDisplayName(trimmedDisplayName);
+    storeDisplayName(trimmedDisplayName);
     setPresenterToken(input.role === 'presenter' ? input.presenterToken || null : null);
     setRoom(joined.room);
     setCurrentPoll(joined.activePoll);
@@ -163,6 +196,9 @@ function App() {
     });
 
     setCurrentPoll(started.poll);
+    if (started.room) {
+      setRoom(started.room);
+    }
     setResults(null);
   };
 
@@ -182,6 +218,9 @@ function App() {
     });
 
     setCurrentPoll(closed.poll);
+    if (closed.room) {
+      setRoom(closed.room);
+    }
     setResults({
       pollId: closed.pollId,
       votingMode: closed.votingMode,
@@ -215,6 +254,7 @@ function App() {
     return (
       <PresenterDashboard
         room={room}
+        displayName={displayName}
         poll={currentPoll}
         results={results}
         onCreatePoll={createPoll}
@@ -224,7 +264,7 @@ function App() {
     );
   }
 
-  return <AudienceView room={room} poll={currentPoll} results={results} onVote={submitVote} />;
+  return <AudienceView room={room} displayName={displayName} poll={currentPoll} results={results} onVote={submitVote} />;
 }
 
 export default App;

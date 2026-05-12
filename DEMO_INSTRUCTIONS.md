@@ -53,7 +53,7 @@ In the presenter window:
 
 In the audience window:
 
-1. Confirm the poll appears without refreshing.
+1. Confirm the poll appears without refreshing.g
 2. Select an option.
 3. Click **Submit vote**.
 
