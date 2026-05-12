@@ -11,6 +11,8 @@ type AudienceViewProps = {
 };
 
 export function AudienceView({ room, displayName, poll, results, onVote }: AudienceViewProps) {
+  const lifecycleStatus = poll ? poll.status : room.status;
+
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-8 text-left">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -19,7 +21,7 @@ export function AudienceView({ room, displayName, poll, results, onVote }: Audie
           <h1 className="text-3xl font-semibold text-slate-950">Room {room.code}</h1>
           <p className="mt-1 text-sm font-medium text-slate-600">{displayName}</p>
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">{room.status}</span>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">{lifecycleStatus}</span>
       </header>
 
       <div className="space-y-5">
